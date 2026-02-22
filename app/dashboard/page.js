@@ -1,138 +1,259 @@
-
-
 "use client";
-import { useSession } from "next-auth/react";
+
+import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-export default function Dashboard() {
- const { data: session } = useSession();
+export default function Dashboard(){
 
- if (!session) {
-    return <div>Please login</div>;
- }
+ const { data: session, status } = useSession();
 
- const [tasks, setTasks] = useState([]);
+ const router = useRouter();
 
- const [total, setTotal] = useState(0);
+ const [stats,setStats] = useState({
 
- const [completed, setCompleted] = useState(0);
+  total:0,
+  completed:0,
+  pending:0,
+  progress:0
 
- const [pending, setPending] = useState(0);
+ });
 
- const [progress, setProgress] = useState(0);
-
-
-
- useEffect(() => {
-
-  loadDashboard();
-
- }, []);
+ const [loading,setLoading] = useState(true);
 
 
+ // Protect Route
 
- const loadDashboard = async () => {
+ useEffect(()=>{
+
+  if(status==="unauthenticated"){
+
+   router.push("/");
+
+  }
+
+  if(status==="authenticated"){
+
+   loadStats();
+
+  }
+
+ },[status]);
+
+
+ async function loadStats(){
 
   const res = await fetch("/api/tasks");
 
   const data = await res.json();
 
-  setTasks(data);
+  const total = data.length;
 
+  const completed = data.filter(
 
-
-  const totalTasks = data.length;
-
-  const completedTasks = data.filter(
-
-   task => task.status === "completed"
+   task=>task.status==="completed"
 
   ).length;
 
-  const pendingTasks = totalTasks - completedTasks;
+  const pending = total-completed;
 
-  const progressPercent = totalTasks === 0
+  const progress = total===0
 
-   ? 0
+   ?0
 
-   : Math.floor((completedTasks / totalTasks) * 100);
+   :Math.floor((completed/total)*100);
 
+  setStats({
 
+   total,
+   completed,
+   pending,
+   progress
 
-  setTotal(totalTasks);
+  });
 
-  setCompleted(completedTasks);
+  setLoading(false);
 
-  setPending(pendingTasks);
-
-  setProgress(progressPercent);
-
- };
-
-
-
- return (
-
-  <div style={{ padding: "20px" }}>
-
-   <h1>Dashboard</h1>
+ }
 
 
-   <h3>Total Tasks: {total}</h3>
+ if(status==="loading" || loading){
 
-   <h3>Completed: {completed}</h3>
+  return(
 
-   <h3>Pending: {pending}</h3>
+   <div className="flex justify-center items-center h-screen">
+
+    Loading Dashboard...
+
+   </div>
+
+  );
+
+ }
 
 
+ return(
 
-   <h3>Progress: {progress}%</h3>
+  <div>
 
 
+   {/* Header */}
 
-   <div style={{
+   <div className="flex justify-between items-center mb-6">
 
-    width: "300px",
 
-    height: "20px",
+    <div>
 
-    border: "1px solid black"
+     <h1 className="text-3xl font-bold">
 
-   }}>
+      Dashboard
 
-    <div style={{
+     </h1>
 
-     width: `${progress}%`,
+     <p className="text-gray-600">
 
-     height: "100%",
+      Welcome, {session.user.name}
 
-     backgroundColor: "green"
-
-    }}>
+     </p>
 
     </div>
+
+
+    <button
+
+     onClick={()=>signOut({ callbackUrl:"/" })}
+
+     className="bg-red-500 text-white px-4 py-2 rounded"
+
+    >
+
+     Logout
+
+    </button>
+
 
    </div>
 
 
+   {/* Stats Cards */}
 
-   <h2>Recent Tasks</h2>
+   <div className="grid grid-cols-4 gap-6 mb-6">
 
 
-   {tasks.map(task => (
+    <div className="bg-white p-6 rounded shadow">
 
-    <div key={task.id}>
+     Total Tasks
 
-     {task.title}
+     <p className="text-2xl font-bold">
 
-     {" | "}
+      {stats.total}
 
-     {task.status}
+     </p>
 
     </div>
 
-   ))}
 
+    <div className="bg-green-100 p-6 rounded shadow">
+
+     Completed
+
+     <p className="text-2xl font-bold">
+
+      {stats.completed}
+
+     </p>
+
+    </div>
+
+
+    <div className="bg-red-100 p-6 rounded shadow">
+
+     Pending
+
+     <p className="text-2xl font-bold">
+
+      {stats.pending}
+
+     </p>
+
+    </div>
+
+
+    <div className="bg-blue-100 p-6 rounded shadow">
+
+     Progress
+
+     <p className="text-2xl font-bold">
+
+      {stats.progress}%
+
+     </p>
+
+    </div>
+
+
+   </div>
+
+
+   {/* Progress Bar */}
+
+   <div className="bg-white p-6 rounded shadow mb-6">
+
+    <p className="mb-2">
+
+     Overall Progress
+
+    </p>
+
+
+    <div className="w-full bg-gray-300 h-4 rounded">
+
+
+     <div
+
+      className="bg-blue-600 h-4 rounded transition-all"
+
+      style={{width:`${stats.progress}%`}}
+
+     />
+
+
+    </div>
+
+
+   </div>
+
+
+   {/* Navigation Buttons */}
+
+   <div className="flex gap-4">
+
+
+    <button
+
+     onClick={()=>router.push("/tasks")}
+
+     className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700"
+    >
+
+     Go to Tasks →
+
+    </button>
+
+
+    <button
+
+     onClick={()=>router.push("/subjects")}
+
+     className="bg-purple-600 text-white px-6 py-3 rounded hover:bg-purple-700"
+    >
+
+     Go to Subjects →
+
+    </button>
+
+
+   </div>
 
 
   </div>

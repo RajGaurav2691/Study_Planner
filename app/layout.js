@@ -1,23 +1,24 @@
-"use client";
+import "./globals.css";
+import Providers from "@/components/providers";
 
-import { SessionProvider } from "next-auth/react";
-import Navbar from "@/components/navbar";
+export const metadata = {
+  title: "Smart Study Planner",
+  description: "Study Planner",
+};
 
 export default function RootLayout({ children }) {
 
   return (
 
-    <html>
+    <html lang="en">
 
       <body>
 
-        <SessionProvider>
-
-          <Navbar />
+        <Providers>
 
           {children}
 
-        </SessionProvider>
+        </Providers>
 
       </body>
 
