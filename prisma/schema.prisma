@@ -1,43 +1,41 @@
 generator client {
-
- provider = "prisma-client-js"
-
+  provider = "prisma-client-js"
 }
 
 datasource db {
-
- provider = "mysql"
- url      = env("DATABASE_URL")
-
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
+  password String
 
- id        Int      @id @default(autoincrement())
- name      String
- email     String   @unique
- password  String
- subjects  Subject[]
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
 
+  subjects subject[]
 }
 
-model Subject {
+model subject {
+  id     Int    @id @default(autoincrement())
+  name   String
+  userId Int
 
- id       Int     @id @default(autoincrement())
- name     String
- userId   Int
- user     User    @relation(fields: [userId], references: [id])
- tasks    Task[]
+  user User @relation(fields: [userId], references: [id])
 
+  tasks task[]
 }
 
-model Task {
+model task {
+  id       Int      @id @default(autoincrement())
+  title    String
+  status   String
+  deadline DateTime
 
- id        Int      @id @default(autoincrement())
- title     String
- status    String
- deadline  DateTime
- subjectId Int
- subject   Subject  @relation(fields: [subjectId], references: [id])
+  subjectId Int
 
+  subject subject @relation(fields: [subjectId], references: [id])
 }

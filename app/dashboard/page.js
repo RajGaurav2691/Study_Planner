@@ -41,38 +41,91 @@ export default function Dashboard(){
  },[status]);
 
 
+ // Refresh stats when page becomes visible
+
+ useEffect(() => {
+
+  const handleVisibilityChange = () => {
+
+   if (document.visibilityState === "visible") {
+
+    setLoading(true);
+
+    loadStats();
+
+   }
+
+  };
+
+  const handleFocus = () => {
+
+   setLoading(true);
+
+   loadStats();
+
+  };
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  window.addEventListener("focus", handleFocus);
+
+  return () => {
+
+   document.removeEventListener("visibilitychange", handleVisibilityChange);
+
+   window.removeEventListener("focus", handleFocus);
+
+  };
+
+ }, []);
+
+
  async function loadStats(){
 
-  const res = await fetch("/api/tasks");
+  try {
 
-  const data = await res.json();
+   const res = await fetch("/api/tasks", {
 
-  const total = data.length;
+    cache: "no-store"
 
-  const completed = data.filter(
+   });
 
-   task=>task.status==="completed"
+   const data = await res.json();
 
-  ).length;
+   const total = data.length;
 
-  const pending = total-completed;
+   const completed = data.filter(
 
-  const progress = total===0
+    task=>task.status==="completed"
 
-   ?0
+   ).length;
 
-   :Math.floor((completed/total)*100);
+   const pending = total-completed;
 
-  setStats({
+   const progress = total===0
 
-   total,
-   completed,
-   pending,
-   progress
+    ?0
 
-  });
+    :Math.floor((completed/total)*100);
 
-  setLoading(false);
+   setStats({
+
+    total,
+    completed,
+    pending,
+    progress
+
+   });
+
+   setLoading(false);
+
+  } catch (error) {
+
+   console.log("Error loading stats:", error);
+
+   setLoading(false);
+
+  }
 
  }
 
@@ -119,17 +172,33 @@ export default function Dashboard(){
     </div>
 
 
-    <button
+    <div className="flex gap-2">
 
-     onClick={()=>signOut({ callbackUrl:"/" })}
+     <button
 
-     className="bg-red-500 text-white px-4 py-2 rounded"
+      onClick={()=>loadStats()}
 
-    >
+      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
 
-     Logout
+     >
 
-    </button>
+      Refresh
+
+     </button>
+
+     <button
+
+      onClick={()=>signOut({ callbackUrl:"/" })}
+
+      className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+
+     >
+
+      Logout
+
+     </button>
+
+    </div>
 
 
    </div>

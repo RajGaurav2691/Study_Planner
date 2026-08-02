@@ -1,78 +1,140 @@
 import prisma from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
+// =======================
+// COMPLETE TASK
+// =======================
+export async function PUT(request, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
 
-// DELETE TASK
+    if (!session?.user?.id) {
+      return Response.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-export async function DELETE(req, { params }) {
+    // Next.js 15/16
+    const { id } = await params;
+    const taskId = Number(id);
+    const userId = Number(session.user.id);
 
- try {
+    console.log("PUT Task ID:", taskId);
 
-  const id = Number(params.id);
+    // Verify task belongs to current user
+    const task = await prisma.task.findUnique({
+      where: {
+        id: taskId,
+      },
+      include: {
+        subject: true,
+      },
+    });
 
-  await prisma.task.delete({
+    if (!task) {
+      return Response.json(
+        { error: "Task not found" },
+        { status: 404 }
+      );
+    }
 
-   where: { id }
+    if (task.subject.userId !== userId) {
+      return Response.json(
+        { error: "Access denied" },
+        { status: 403 }
+      );
+    }
 
-  });
+    const updatedTask = await prisma.task.update({
+      where: {
+        id: taskId,
+      },
+      data: {
+        status: "completed",
+      },
+    });
 
-  return Response.json({
+    return Response.json(updatedTask);
+  } catch (error) {
+    console.error("PUT /api/tasks/[id] error:", error);
 
-   message: "Deleted"
-
-  });
-
- }
-
- catch (error) {
-
-  return Response.json({
-
-   error: error.message
-
-  });
-
- }
-
+    return Response.json(
+      {
+        error: error.message || "Error updating task",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }
 
+// =======================
+// DELETE TASK
+// =======================
+export async function DELETE(request, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
 
+    if (!session?.user?.id) {
+      return Response.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-// UPDATE TASK STATUS
+    // Next.js 15/16
+    const { id } = await params;
+    const taskId = Number(id);
+    const userId = Number(session.user.id);
 
-export async function PUT(req, { params }) {
+    console.log("DELETE Task ID:", taskId);
 
- try {
+    // Verify task belongs to current user
+    const task = await prisma.task.findUnique({
+      where: {
+        id: taskId,
+      },
+      include: {
+        subject: true,
+      },
+    });
 
-  const id = Number(params.id);
+    if (!task) {
+      return Response.json(
+        { error: "Task not found" },
+        { status: 404 }
+      );
+    }
 
-  await prisma.task.update({
+    if (task.subject.userId !== userId) {
+      return Response.json(
+        { error: "Access denied" },
+        { status: 403 }
+      );
+    }
 
-   where: { id },
+    await prisma.task.delete({
+      where: {
+        id: taskId,
+      },
+    });
 
-   data: {
+    return Response.json({
+      message: "Task deleted successfully",
+    });
+  } catch (error) {
+    console.error("DELETE /api/tasks/[id] error:", error);
 
-    status: "completed"
-
-   }
-
-  });
-
-  return Response.json({
-
-   message: "Updated"
-
-  });
-
- }
-
- catch (error) {
-
-  return Response.json({
-
-   error: error.message
-
-  });
-
- }
-
+    return Response.json(
+      {
+        error: error.message || "Error deleting task",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
 }

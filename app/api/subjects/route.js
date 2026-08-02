@@ -1,70 +1,44 @@
+import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-
-import prisma from "@/lib/prisma";
-
-
 // CREATE SUBJECT
-
 export async function POST(request) {
+  try {
+    const session = await getServerSession(authOptions);
 
-  const session = await getServerSession(authOptions);
-
-  if (!session) {
-    return Response.json({
-      error: "Unauthorized"
-    });
-  }
-
-  const body = await request.json();
-
-  const subject = await prisma.subject.create({
-
-    data: {
-
-      name: body.name,
-
-      userId: session.user.id   // THIS IS REAL USER ID
-
+    if (!session?.user?.id) {
+      return Response.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
-  });
+    const body = await request.json();
 
-  return Response.json(subject);
+    const userId = Number(session.user.id);
 
-}
+    if (isNaN(userId)) {
+      return Response.json(
+        { error: "Invalid user id" },
+        { status: 400 }
+      );
+    }
 
+    const subject = await prisma.subject.create({
+      data: {
+        name: body.name.trim(),
+        userId: userId,
+      },
+    });
 
+    return Response.json(subject);
+  } catch (error) {
+    console.error("POST /api/subjects error:", error);
 
-// GET ALL SUBJECTS
-
-export async function GET() {
-
- try {
-
-  const subjects = await prisma.subject.findMany({
-
-   include: {
-
-    tasks: true
-
-   }
-
-  });
-
-  return Response.json(subjects);
-
- }
-
- catch (error) {
-
-  return Response.json({
-
-   error: error.message
-
-  });
-
- }
-
+    return Response.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
 }
